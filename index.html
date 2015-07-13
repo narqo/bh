@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Incremental DOM</title>
+    <script src="./node_modules/incremental-dom/dist/incremental-dom.js"></script>
+    <script src="./lib/bh.js" charset="utf-8"></script>
+</head>
+<body>
+    <div id="container"></div>
+<script>
+    var bh = new BH();
+
+    bh.match('button', function(ctx) {
+        ctx
+            .tag('button')
+            .attrs({
+                type : 'submit'
+            });
+    });
+
+    bh.match('button_disabled', function(ctx) {
+        ctx.attrs({ disabled : true });
+    });
+
+    bh.match('button__text', function(ctx, json) {
+        ctx
+            .tag('span')
+            .content({
+                tag : 'b',
+                content : json.content
+            }, true);
+    });
+
+    bh.match('input', function(ctx, json) {
+        ctx
+            .js(true)
+            .tag('input')
+            .attrs({
+                value : json.value
+            });
+    });
+
+    var container = document.getElementById('container');
+    var patch = IncrementalDOM.patch;
+
+    function render(bemjson) {
+        bh.apply(bemjson);
+    }
+
+    function update(data) {
+        patch(container, function() {
+            var text = data.text.trim(),
+                isEmpyText = text.length === 0;
+
+            render([
+                {
+                     block : 'input',
+                     mix : { block : 'form-input', mods : { valid : !isEmpyText } },
+                     value : data.text
+                },
+                {
+                    block : 'button',
+                    mods : { disabled : isEmpyText },
+                    content : { elem : 'text', content : 'ok button' }
+                },
+                { tag : 'div', content : [ 'value:', data.text ] }
+            ]);
+        });
+    }
+
+    function onInput(e) {
+        update({ text : e.target.value });
+    }
+
+    document.addEventListener('input', onInput);
+
+    update({ text : 'hello' });
+</script>
+</body>
+</html>
